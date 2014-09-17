@@ -19,17 +19,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
-########IMPORTS###########################
 from argparse import ArgumentParser , RawTextHelpFormatter
 import lxml.etree as ET
-from lxml import objectify
 import os
 
 
-########CLASSES AND FUNCTIONS###########################
 class rpmObject:
+	# an rpmObject is package from the RPM-List, AND from the xml-lists.
+	# for instance the string 'glibc-2.12-1.47.el6.x86_64' 
+	# provides name, version, subversion(release) and arch.
+	# type is pulled from xml-context
+	# origin is purely cosmetic for verbose-mode.
+
 	def __init__(self,name, version, subversion, arch, typ = "existing", orig="unknown"):
+		# this constructor takes multiple variables instead of one string, as
+		# there are different formats that would require multiple constructors.
+		#
+		
 		self.name = name
 		self.version = version
 		self.subversion = subversion
@@ -38,10 +44,13 @@ class rpmObject:
 		self.orig = orig
 
 	def show(self):
+		# print this object
 		print "[",self.orig,"]",self.name,"in version", self.version, self.subversion, "on arch",self.arch
 
 	def equals(self, foreign):
-		# Splitted up in many if's for readability's sake.
+		# 'equals' compares the major components and tests for compability
+		#  package1 equals package2 if they are updates of each other.
+		
 		if (self.name == foreign.name and
 			self.version == foreign.version and
 				((self.arch == foreign.arch)or(foreign.arch=="noarch")) ):
@@ -49,19 +58,35 @@ class rpmObject:
 		return False
 
 def default_cutter(line, typ, arch=None, rpmending = True):
+	# this cutter parses lines that are delivered by rpm -qa.
+	# ex glibc-2.12-1.47.el6.x86_64
+	
+	# cut by "-". Start right. 2Cuts - so 3 packages
+	# ["glibc","2.12","1.47.el6.x86_64"]
+	
 	packagename = line.rsplit("-", 2)
-	if len(packagename) < 3:
+	if len(packagename) < 3: # if there are less packages than 3, die.
 		return None
+		
+	# give proper names to the packages. Start at the back.
 	subversion_arch_rpm =  packagename[-1]
 	version = packagename[-2]
 	name = packagename[-3]
+	
+	# Last Package MAY have rpm or arch ending.
+	# 1.47.el6
+	# 1.47.el6.x86_64
+	# 1.47.el6.x86_64.rpm
+	
+	# Cut by dots, start right. Expect 1 to 3 packages
 	if rpmending:
 		(subversion, arch, rpm) = subversion_arch_rpm.rsplit(".",2)
 	elif arch==None:
 		(subversion, arch) = subversion_arch_rpm.rsplit(".",1)
 	else:
 		subversion = subversion_arch_rpm
-
+		
+	# Build object and return.
 	return rpmObject(name, version, subversion, arch, typ)
 
 def epel_cutter(line, typ, arch=None):
@@ -70,33 +95,45 @@ def epel_cutter(line, typ, arch=None):
 	
 	
 def subversion_a_is_bigger(first, second):
-	# "12.el3.342" is exampleinput
-	#
-	# Basically split it up by dots.
-	# The one with a lower number is smaller
-	# OR 
-	# The one with a lower lexicographic value is smaller
-	# OR
-	# The one first reaching el is smaller
-	#  >Magic
+	# Compare the subversion(release)
+	
+	# Two versionstrings are supplied.
+	# First, cut the supplied strings.
+	# cut by dots.
+	
 	firstlist = first.split(".")
 	secondlist = second.split(".")
-
+	
+	# Subversions are a little fuzzy to compare.
 	for i in range(len(firstlist)):
+		# Run through all those packages.
+		# TRY to grab the current element.
+		# As the arrays do not need to be of the same size, expect an error.
+		# If there is an error, one version is obviously shorter.
+		
+		# 1.47.123.el6.x86_64 for instance is a bigger version than
+		# 1.47.el6.x86_64
+		# The 'longer' Version will win.
 		try:
 			a = firstlist[i]
 			b = secondlist[i]
-		except:#one seems to be bigger. Yay
+		except:
 			if len(a)> len(b):
 				return True
 			elif len(a) < len(b):
 				return False
+		# "EL" (enterprise linux i assume?) shows up before arch.
+		# Whoever reached EL first, is obviously shorter
+		# 'longer' Version wins again.
 		if a.find("el")!=-1 and b.find("el")==-1:
-
 			return False
 		elif a.find("el")==1 and b.find("el")!=1:
-
 			return True
+		
+		# Vor every package of numbers, try to compare on a numerical level.
+		# This MAY fail, if someone puts in a version like 1A.34
+		# TRY the numerical approach.
+		# If it fails -> lexicographic.
 		try:
 			if int(a) > int(b):
 				return True
@@ -107,13 +144,19 @@ def subversion_a_is_bigger(first, second):
 				return True
 			elif a < b:
 				return False
+	# If everything fails, we cant say the version is bigger.
+	return False
+				
 def buildrpmlist(rpm, VERBOSE = False):
-	#Fetch all RPM's from inputfile.
+	# Fetch all RPM's from inputfile.
+	# Open file and line-by-line cut the strings to objects.
+	# Return list of objects at the end.
+	
 	RPM_LIST = []
 	if VERBOSE:
 		print "----Parsing RPM:-File"
 
-	skipped =0
+	skipped=0 # for verbose
 	try:
 		f = open(rpm, 'r')
 		for line in f:
@@ -136,7 +179,7 @@ def buildrpmlist(rpm, VERBOSE = False):
 		print "----\n"
 	return RPM_LIST
 
-def buildlists(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True):
+def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, identifier = "unknown"):
 	XML_LIST = []
 
 	#XML-parser
@@ -188,7 +231,7 @@ def buildlists(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True):
 						 for package in update.find("pkglist").find("collection"):
 							 if package.tag == "package":
 								#here could be a cutter, but epel-files dont require cutting.
-								a =  rpmObject(package.attrib["name"], package.attrib["version"],package.attrib["release"],package.attrib["arch"],update.attrib["type"])
+								a =  rpmObject(package.attrib["name"], package.attrib["version"],package.attrib["release"],package.attrib["arch"],update.attrib["type"], identifier)
 								XML_LIST.append(a)
 								
 		else:
@@ -206,12 +249,18 @@ def buildlists(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True):
 	return XML_LIST
 	
 def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
-	#O(n*m) solution ahead. Think about sorted-lists or a proper search for speed-up.
-	validupdates = {} # Dict to avoid double entries
+	# this function "merges" xml and rpm object-lists.
+	# compare both lists. If any object 'equals' the other, it could be an update.
+	# compare subversions to filter 'upgrades' only.
+	#
+	# O(n*m) solution ahead. Think about sorted-lists or a proper search for speed-up.
+	
+	# Dictionary to avoid double entries in the final list
+	validupdates = {} 
 	if VERBOSE:
 		print "----Comparing matches from List and XML"
-	updatesfound = 0
-	updatesseemlower = 0
+	updatesfound = 0		#verbose
+	updatesseemlower = 0	#verbose
 	for XML_LIST in XML_LIST_LIST:
 		for update in XML_LIST:
 			for existing_rpm in RPM_LIST:
@@ -233,7 +282,7 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
 		print "---- Found",updatesfound,"Updates for the given RPM-List, distributed to", len(XML_LIST_LIST), "Files"
 		print "----",updatesseemlower,"seem to be of a lower release"
 		print "----",updatesfound - len(validupdates)," didnt make it to the resultlist"
-		print "---- ( double entries?)"
+		print "---- ( double entries? )"
 	return validupdates
 	
 def pullFromWeb(url, VERBOSE):
@@ -287,18 +336,27 @@ def pullFromWeb(url, VERBOSE):
 	dropoff = dropoff[:-3] # new file most likely lacks .gz
 	
 	return dropoff
-	
+
 def main(args):
+	# 1. Obtain RPM-List and build rpmObject-List
+	# 2. For all XML'files, build rpmObject-Lists
+	# 3. Test all XML-Lists against the RPM-List
+	# 4. Print the matches.
 	rpmfile = args.rpmfile
 	rpmlist = buildrpmlist(rpmfile)
 	
 	XML_LIST_LIST = []
 	
-	for xmlfile in args.xmlfile:
-
+	xmlfileidentifier = 0 # this id supplies verbose-mode with an origin-id of the update.
+	for xmlfile in args.xmlfilelist:
+		xmlfileidentifier +=1
 		if xmlfile.find("http")!= -1:
 			xmlfile = pullFromWeb(xmlfile, args.verbose)
-		XML_LIST_LIST.append ( buildlists(xmlfile, rpmlist, args.verbose, args.bugs, args.security) )
+		XML_LIST_LIST.append ( buildlist(xmlfile, rpmlist, args.verbose, args.bugs, args.security, xmlfileidentifier) )
+	if args.verbose:
+		for XML_LIST in XML_LIST_LIST:
+			for item in XML_LIST:
+				item.show()
 	validupdates = merge(XML_LIST_LIST, rpmlist, args.verbose, args.uponly)
 	for validupdate in validupdates:
 		print validupdate
@@ -312,8 +370,8 @@ if __name__ == "__main__":
 	parser.add_argument("-r", "--rpm", dest="rpmfile", required = True,
 					  help="Path to 'installed-rpm'-list.\nThis file is returned when you run 'rpm -qa > filename'")
 					  
-	parser.add_argument("-x", "--xml", dest="xmlfile",nargs='+',required = True,
-					  help="Path to XML-UpdatelistFile or a repositories HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
+	parser.add_argument("-x", "--xml", dest="xmlfilelist",nargs='+',required = True,
+					  help="[LIST] Path to XML-UpdatelistFile or a repositories HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
 					  
 	parser.add_argument("-b", "--bugs",
 					  action="store_true", dest="bugs", default=False,
