@@ -363,30 +363,28 @@ def main(args):
 	if args.verbose:
 		print "\n",len(validupdates), " items returned"
 	
-if __name__ == "__main__":
+def constructArgParser():
 	parser=ArgumentParser(
 		description='This script parses a given XML-File with packgeupdate information and a list of installed rpm\'s on CentOS.\n It then seeks updates for installed rpm\'s in the XML and prints those to stdout.',
 		 epilog="",formatter_class=RawTextHelpFormatter)
 	parser.add_argument("-r", "--rpm", dest="rpmfile", required = True,
 					  help="Path to 'installed-rpm'-list.\nThis file is returned when you run 'rpm -qa > filename'")
-					  
 	parser.add_argument("-x", "--xml", dest="xmlfilelist",nargs='+',required = True,
 					  help="[LIST] Path to XML-UpdatelistFile or a repositories HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
-					  
 	parser.add_argument("-b", "--bugs",
 					  action="store_true", dest="bugs", default=False,
 					  help="List Bugfixes")
-
 	parser.add_argument("-s", "--security",
 					  action="store_false", dest="security", default=True,
 					  help="Ignore Security Updates")
-					  
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
 					  help="Show extra messages")
-	 
 	parser.add_argument("-u", action="store_true", dest="uponly", default=False,
 					  help="Upgrades to higher releaseversions only") 
-
 	args = parser.parse_args()
+	return
+
+if __name__ == "__main__":
+	constructArgParser()
 
 	main(args)
