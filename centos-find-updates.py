@@ -333,10 +333,10 @@ if __name__ == "__main__":
 					  help="Ignore Security Updates")
 					  
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
-					  help="show extra messages")
+					  help="Show extra messages")
 	 
 	parser.add_argument("-u", action="store_true", dest="uponly", default=False,
-					  help="Upgrades to highter releaseversions onls") 
+					  help="Upgrades to higher releaseversions only") 
 
 	args = parser.parse_args()
 
