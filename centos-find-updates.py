@@ -29,16 +29,16 @@ import os
 
 ########CLASSES AND FUNCTIONS###########################
 class rpmObject:
-	def __init__(self,name, version, subversion, arch, typ = "existing"):
+	def __init__(self,name, version, subversion, arch, typ = "existing", orig="unknown"):
 		self.name = name
 		self.version = version
 		self.subversion = subversion
 		self.arch = arch
 		self.typ = typ
-
+		self.orig = orig
 
 	def show(self):
-		print self.name,"in version", self.version, self.subversion, "on arch",self.arch
+		print "[",self.orig,"]",self.name,"in version", self.version, self.subversion, "on arch",self.arch
 
 	def equals(self, foreign):
 		# Splitted up in many if's for readability's sake.
@@ -107,27 +107,9 @@ def subversion_a_is_bigger(first, second):
 				return True
 			elif a < b:
 				return False
-
-
-def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
-	########INIT THE MAIN LISTS###########################
-	XML_LIST = []
-	RPM_LIST = []
-
-
-
-	# _________      _______
-	#|RPM-List |____/CUTTER/_____
-	#|P_A_R_S_E|   /______/     _|___
-	#                          |MERGE|___print Result
-	# __________    _______    |VUPS_|
-	#|Update-XML|__/CUTTER/_____|
-	#|P_A_R_S_E_| /______/
-	#
-	#
-	######## PROCESSING ###########################
+def buildrpmlist(rpm, VERBOSE = False):
 	#Fetch all RPM's from inputfile.
-
+	RPM_LIST = []
 	if VERBOSE:
 		print "----Parsing RPM:-File"
 
@@ -135,7 +117,11 @@ def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
 	try:
 		f = open(rpm, 'r')
 		for line in f:
-				cuttedObject = default_cutter(line.strip(), "existing", rpmending=False)
+				try: # There are (mini) packages within the packagelist that 
+					# dont follow the convention. Just be sure, try-catch it.
+					cuttedObject = default_cutter(line.strip(), "existing", rpmending=False)
+				except:
+					pass
 				if cuttedObject != None:
 					RPM_LIST.append(cuttedObject)
 				else:
@@ -148,10 +134,10 @@ def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
 		if skipped:
 			print "Could not read", skipped,"lines"
 		print "----\n"
+	return RPM_LIST
 
-
-
-
+def buildlists(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True):
+	XML_LIST = []
 
 	#XML-parser
 
@@ -171,7 +157,7 @@ def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
 		if VERBOSE:
 			print "Detecting XML-Format"
 
-		####################vvv Document specific magic ahead vvv##############################
+		####################vvv Document specific parser ahead vvv##############################
 		if root.tag == "opt": # most likely the steve-meier list. Parse it.
 			if VERBOSE:
 				print "'opt' is root. Should be a steve-meier list"
@@ -192,7 +178,7 @@ def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
 									
 									
 									
-		####################vvv Document specific magic ahead vvv##########################
+		####################vvv Document specific parser ahead vvv##########################
 		elif root.tag == "updates": #most likely epel-update list. Parse it.
 			if VERBOSE:
 				print "'updates' is root. Should be an epel or repo list"
@@ -205,7 +191,6 @@ def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
 								a =  rpmObject(package.attrib["name"], package.attrib["version"],package.attrib["release"],package.attrib["arch"],update.attrib["type"])
 								XML_LIST.append(a)
 								
-		####################vvv Document specific magic ahead vvv##########################
 		else:
 			print "Could not parse the given xml-file.\n Exiting"
 			
@@ -218,34 +203,37 @@ def buildlists(xml, rpm, VERBOSE = False, BUGS = False, SECURITY = True):
 		if skipped:
 			print "Could not read", skipped,"lines\n----"
 
-	return XML_LIST, RPM_LIST
+	return XML_LIST
 	
-def merge(XML_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
+def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
 	#O(n*m) solution ahead. Think about sorted-lists or a proper search for speed-up.
 	validupdates = {} # Dict to avoid double entries
 	if VERBOSE:
 		print "----Comparing matches from List and XML"
 	updatesfound = 0
 	updatesseemlower = 0
-	for update in XML_LIST:
-		for existing_rpm in RPM_LIST:
-			if update.equals(existing_rpm):
-				updatesfound += 1
-				sign = "+"
-				if subversion_a_is_bigger(existing_rpm.subversion,update.subversion ):
-							updatesseemlower += 1
-							sign = "-"
-							if UPONLY:
-								continue
-				if VERBOSE:					
-					print sign,update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.subversion 
-				try:
-					validupdates[existing_rpm.name] = 1
-				except:
-					pass
+	for XML_LIST in XML_LIST_LIST:
+		for update in XML_LIST:
+			for existing_rpm in RPM_LIST:
+				if update.equals(existing_rpm):
+					updatesfound += 1
+					sign = "+"
+					if subversion_a_is_bigger(existing_rpm.subversion,update.subversion ):
+								updatesseemlower += 1
+								sign = "-"
+								if UPONLY:
+									continue
+					if VERBOSE:					
+						print sign,"[",update.orig,"]",update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.subversion 
+					try:
+						validupdates[existing_rpm.name] = 1
+					except:
+						pass
 	if VERBOSE:
-		print "---- Found",updatesfound,"Updates for the given RPM-List."
+		print "---- Found",updatesfound,"Updates for the given RPM-List, distributed to", len(XML_LIST_LIST), "Files"
 		print "----",updatesseemlower,"seem to be of a lower release"
+		print "----",updatesfound - len(validupdates)," didnt make it to the resultlist"
+		print "---- ( double entries?)"
 	return validupdates
 	
 def pullFromWeb(url, VERBOSE):
@@ -301,19 +289,22 @@ def pullFromWeb(url, VERBOSE):
 	return dropoff
 	
 def main(args):
-	xmlfile = args.xmlfile
 	rpmfile = args.rpmfile
-	try:
+	rpmlist = buildrpmlist(rpmfile)
+	
+	XML_LIST_LIST = []
+	
+	for xmlfile in args.xmlfile:
+
 		if xmlfile.find("http")!= -1:
 			xmlfile = pullFromWeb(xmlfile, args.verbose)
-		(xmllist, rpmlist) = buildlists(xmlfile, rpmfile, args.verbose, args.bugs, args.security)
-		validupdates = merge(xmllist, rpmlist, args.verbose, args.uponly)
-		for validupdate in validupdates:
-			print validupdate
-	except Exception as e:
-			import traceback
-			traceback.print_exc()
-		
+		XML_LIST_LIST.append ( buildlists(xmlfile, rpmlist, args.verbose, args.bugs, args.security) )
+	validupdates = merge(XML_LIST_LIST, rpmlist, args.verbose, args.uponly)
+	for validupdate in validupdates:
+		print validupdate
+	if args.verbose:
+		print "\n",len(validupdates), " items returned"
+	
 if __name__ == "__main__":
 	parser=ArgumentParser(
 		description='This script parses a given XML-File with packgeupdate information and a list of installed rpm\'s on CentOS.\n It then seeks updates for installed rpm\'s in the XML and prints those to stdout.',
@@ -321,7 +312,7 @@ if __name__ == "__main__":
 	parser.add_argument("-r", "--rpm", dest="rpmfile", required = True,
 					  help="Path to 'installed-rpm'-list.\nThis file is returned when you run 'rpm -qa > filename'")
 					  
-	parser.add_argument("-x", "--xml", dest="xmlfile",required = True,
+	parser.add_argument("-x", "--xml", dest="xmlfile",nargs='+',required = True,
 					  help="Path to XML-UpdatelistFile or a repositories HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
 					  
 	parser.add_argument("-b", "--bugs",
