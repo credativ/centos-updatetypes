@@ -348,7 +348,7 @@ def main(args):
 	XML_LIST_LIST = []
 	
 	xmlfileidentifier = 0 # this id supplies verbose-mode with an origin-id of the update.
-	for xmlfile in args.xmlfilelist:
+	for xmlfile in args.xmlfiles:
 		xmlfileidentifier +=1
 		if xmlfile.find("http")!= -1:
 			xmlfile = pullFromWeb(xmlfile, args.verbose)
@@ -365,22 +365,22 @@ def main(args):
 	
 def constructArgParser():
 	parser=ArgumentParser(
-		description='This script parses a given XML-File with packgeupdate information and a list of installed rpm\'s on CentOS.\n It then seeks updates for installed rpm\'s in the XML and prints those to stdout.',
+		description='This script parses a given XML-File with packgeupdate\n information and a list of installed rpm\'s on CentOS.\n It then seeks updates for installed rpm\'s in the XML and prints those to stdout.',
 		 epilog="",formatter_class=RawTextHelpFormatter)
 	parser.add_argument("-r", "--rpm", dest="rpmfile", required = True,
-					  help="Path to 'installed-rpm'-list.\nThis file is returned when you run 'rpm -qa > filename'")
-	parser.add_argument("-x", "--xml", dest="xmlfilelist",nargs='+',required = True,
-					  help="[LIST] Path to XML-UpdatelistFile or a repositories HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
+					  help="Path to 'installed-rpm'-list.\nThis file is returned by 'rpm -qa > filename'")
+	parser.add_argument("-x", "--xml", dest="xmlfiles",nargs='+',required = True,
+					  help="Path to XML-Updatelistfile or a repositorys HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
 	parser.add_argument("-b", "--bugs",
 					  action="store_true", dest="bugs", default=False,
-					  help="List Bugfixes")
+					  help="List bugfixes aswell")
 	parser.add_argument("-s", "--security",
 					  action="store_false", dest="security", default=True,
-					  help="Ignore Security Updates")
+					  help="Ignore securityupdates")
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
 					  help="Show extra messages")
 	parser.add_argument("-u", action="store_true", dest="uponly", default=False,
-					  help="Upgrades to higher releaseversions only") 
+					  help="List higher-releasenumbers only") 
 	args = parser.parse_args()
 	return
 
