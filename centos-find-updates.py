@@ -300,10 +300,10 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 							
 					if VERBOSE:					
 						print sign,"[",update.orig,"]",update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.version ,update.subversion 
-					try:
-						validupdates[existing_rpm.name] = 1
-					except:
-						pass
+
+					validupdates[existing_rpm.name] = 1
+
+					continue;
 	if VERBOSE:
 		print "---- Found",updatesfound,"Updates for the given RPM-List, distributed to", len(XML_LIST_LIST), "Files"
 		print "----",updatesseemlower,"seem to be of a lower release"
