@@ -183,7 +183,7 @@ def buildrpmlist(rpm, VERBOSE = False):
 		print "----\n"
 	return RPM_LIST
 
-def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, identifier = "unknown"):
+def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, identifier = "unknown", ALL = False):
 	XML_LIST = []
 
 	#XML-parser
@@ -212,7 +212,7 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 					if (modules.tag == "meta"):
 						skipped = skipped + 1
 						continue
-					if ( 
+					if ( ALL or
 						   ((modules.attrib["type"].find("Bug")!=-1 ) and (BUGS)     )
 						 or((modules.attrib["type"].find("Security")!=-1 ) and (SECURITY) ) ):
 						for packages in modules:
@@ -230,7 +230,8 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 			if VERBOSE:
 				print "'updates' is root. Should be an epel or repo list"
 			for update in root:
-				if ( (update.attrib["type"].find("bugfix") != -1 and BUGS ) or
+				if   (ALL or 
+					 (update.attrib["type"].find("bugfix") != -1 and BUGS ) or
 					 (update.attrib["type"].find("security") != -1 and SECURITY) ):
 						 for package in update.find("pkglist").find("collection"):
 							 if package.tag == "package":
@@ -252,7 +253,7 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 
 	return XML_LIST
 	
-def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
+def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 	# this function "merges" xml and rpm object-lists.
 	# compare both lists. If any object 'equals' the other, it could be an update.
 	# compare subversions to filter 'upgrades' only.
@@ -310,7 +311,7 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
 		print "---- ( double entries? )"
 	return validupdates
 	
-def pullFromWeb(url, VERBOSE):
+def pullFromWeb(url, VERBOSE=False , VERYVERBOSE = False ):
 	# As we support repositories as xmlfile-origins the given url should
 	# provide a 'repodata' subfolder.
 	# Within this folder, a 'repomd.xml' should point to the correct xml.
@@ -323,7 +324,7 @@ def pullFromWeb(url, VERBOSE):
 	# pull this file and return it's location for further use
 
 	nonoise = ""
-	if not VERBOSE:
+	if not VERYVERBOSE:
 		nonoise = "  >/dev/null 2>&1"
 	pullmechanism = "wget"
 	target =  "%s/repodata/repomd.xml"%(url)
@@ -381,8 +382,8 @@ def main(args):
 	for xmlfile in args.xmlfiles:
 		xmlfileidentifier +=1
 		if xmlfile.find("http")!= -1:
-			xmlfile = pullFromWeb(xmlfile, args.verbose)
-		XML_LIST_LIST.append ( buildlist(xmlfile, rpmlist, args.verbose, args.bugs, args.security, xmlfileidentifier) )
+			xmlfile = pullFromWeb(xmlfile, args.verbose, args.veryverbose)
+		XML_LIST_LIST.append ( buildlist(xmlfile, rpmlist, args.verbose, args.bugs, args.security, xmlfileidentifier, args.All) )
 	if args.verbose:
 		for XML_LIST in XML_LIST_LIST:
 			for item in XML_LIST:
@@ -409,8 +410,12 @@ def constructArgParser():
 					  help="Ignore securityupdates")
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
 					  help="Show extra messages")
+	parser.add_argument("-V", action="store_true", dest="veryverbose", default=False,
+					  help="Show extra messages and curl-menues that break piping.")
 	parser.add_argument("-u", action="store_false", dest="uponly", default=True,
 					  help="Show downgrades") 
+	parser.add_argument("-a", action="store_true", dest="All", default=False,
+					  help="Print all upgrades regardless of type.") 
 	args = parser.parse_args()
 	return args
 
