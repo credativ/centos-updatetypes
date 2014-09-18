@@ -96,10 +96,10 @@ def default_cutter(line, typ, arch=None, rpmending = True):
 def epel_cutter(line, typ, arch=None):
 	pass #see epel-parsetree tl;dr; epel-xml's dont require cutting as the xml is well made.
 	
+#def majorversion_a_is_bigger(first, second):
 	
-	
-def subversion_a_is_bigger(first, second):
-	# Compare the subversion(release)
+def version_a_is_bigger(first, second):
+	# Compare the version(release)
 	
 	# Two versionstrings are supplied.
 	# First, cut the supplied strings.
@@ -271,11 +271,24 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
 				if update.equals(existing_rpm):
 					updatesfound += 1
 					sign = "+"
-					if subversion_a_is_bigger(existing_rpm.subversion,update.subversion ):
-								updatesseemlower += 1
-								sign = "-"
-								if UPONLY:
-									continue
+					if version_a_is_bigger(existing_rpm.version,update.version ):
+						# This is the case when there is a bigger Major-version installed.
+						updatesseemlower += 1
+						sign = "-"
+						if UPONLY:
+							continue
+					elif version_a_is_bigger(update.version,existing_rpm.version ) :
+						# This is the case when there is a bigger Major-version available.
+						pass
+					elif version_a_is_bigger(existing_rpm.subversion,update.subversion ):
+						# This is the case when the versions are equal. 
+						updatesseemlower += 1
+						sign = "-"
+						if UPONLY:
+							continue
+
+						
+							
 					if VERBOSE:					
 						print sign,"[",update.orig,"]",update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.subversion 
 					try:
