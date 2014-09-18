@@ -281,7 +281,15 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
 						# This is the case when there is a bigger Major-version available.
 						pass
 					elif version_a_is_bigger(existing_rpm.subversion,update.subversion ):
-						# This is the case when the versions are equal. 
+						# This is the case when the major versions are equal.
+						# but a bigger subversion is installed. 
+						updatesseemlower += 1
+						sign = "-"
+						if UPONLY:
+							continue
+					elif ((not version_a_is_bigger(existing_rpm.subversion,update.subversion ))\
+					  and( not version_a_is_bigger(update.subversion,existing_rpm.subversion))):
+						#Equals - none is biger, even in subversion
 						updatesseemlower += 1
 						sign = "-"
 						if UPONLY:
@@ -290,7 +298,7 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False, UPONLY = False):
 						
 							
 					if VERBOSE:					
-						print sign,"[",update.orig,"]",update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.subversion 
+						print sign,"[",update.orig,"]",update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.version ,update.subversion 
 					try:
 						validupdates[existing_rpm.name] = 1
 					except:
@@ -401,8 +409,8 @@ def constructArgParser():
 					  help="Ignore securityupdates")
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
 					  help="Show extra messages")
-	parser.add_argument("-u", action="store_true", dest="uponly", default=False,
-					  help="List higher-releasenumbers only") 
+	parser.add_argument("-u", action="store_false", dest="uponly", default=True,
+					  help="Show downgrades") 
 	args = parser.parse_args()
 	return args
 
