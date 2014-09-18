@@ -268,6 +268,8 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 	updatesseemlower = 0	#verbose
 	for XML_LIST in XML_LIST_LIST:
 		for update in XML_LIST:
+			if validupdates.has_key(update.name):#Skip evrything if this key allready exists
+				continue
 			for existing_rpm in RPM_LIST:
 				if update.equals(existing_rpm):
 					updatesfound += 1
@@ -295,14 +297,13 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 						sign = "-"
 						if UPONLY:
 							continue
-
-						
-							
 					if VERBOSE:					
 						print sign,"[",update.orig,"]",update.typ,"available for", existing_rpm.name, existing_rpm.arch, existing_rpm.version," ", existing_rpm.subversion,  " to ",update.version ,update.subversion 
 
 					validupdates[existing_rpm.name] = 1
-
+					# for performance's sake, remove the rpm-object from list.
+					# we dont need it twice.
+					RPM_LIST.remove(existing_rpm)
 					continue;
 	if VERBOSE:
 		print "---- Found",updatesfound,"Updates for the given RPM-List, distributed to", len(XML_LIST_LIST), "Files"
