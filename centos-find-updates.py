@@ -25,7 +25,7 @@ import os
 
 
 class rpmObject:
-	# an rpmObject is package from the RPM-List, AND from the xml-lists.
+	# an rpmObject is a package from the RPM-List AND from the xml-lists.
 	# for instance the string 'glibc-2.12-1.47.el6.x86_64' 
 	# provides name, version, subversion(release) and arch.
 	# type is pulled from xml-context
@@ -34,7 +34,7 @@ class rpmObject:
 	def __init__(self,name, version, subversion, arch, typ = "existing", orig="unknown"):
 		# this constructor takes multiple variables instead of one string, as
 		# there are different formats that would require multiple constructors.
-		#
+		# 
 		
 		self.name = name
 		self.version = version
@@ -44,18 +44,22 @@ class rpmObject:
 		self.orig = orig
 
 	def show(self):
-		# print this object
+		# print this object to stdout
 		print "[",self.orig,"]",self.name,"in version", self.version, self.subversion, "on arch",self.arch
 
 	def equals(self, foreign):
 		# 'equals' compares the major components and tests for compability
-		#  package1 equals package2 if they are updates of each other.
+		# package1 equals package2 if they are updates of each other.
+		# name, versio and arch need to fit. subversion(release) doesnt need to. 
 		
 		if (self.name == foreign.name and
 			self.version == foreign.version and
 				((self.arch == foreign.arch)or(foreign.arch=="noarch")) ):
 					return True
 		return False
+
+# Cutters take strings and cut them into smaller stringpackages.
+# They're used to provide the rpmObject-class with the required options.
 
 def default_cutter(line, typ, arch=None, rpmending = True):
 	# this cutter parses lines that are delivered by rpm -qa.
@@ -90,7 +94,7 @@ def default_cutter(line, typ, arch=None, rpmending = True):
 	return rpmObject(name, version, subversion, arch, typ)
 
 def epel_cutter(line, typ, arch=None):
-	pass #see epel-parsetree
+	pass #see epel-parsetree tl;dr; epel-xml's dont require cutting as the xml is well made.
 	
 	
 	
@@ -289,9 +293,14 @@ def pullFromWeb(url, VERBOSE):
 	# As we support repositories as xmlfile-origins the given url should
 	# provide a 'repodata' subfolder.
 	# Within this folder, a 'repomd.xml' should point to the correct xml.
+
+	# Task:
 	# pull <url>/repodata/repomd.xml
 	# obtain link to update-xml from repomd.xml
+	# (checksums are added infront of the filename by default, so we need to seek the
+	#  update.xml's >real< name witin repomd.xml prior to loading it.
 	# pull this file and return it's location for further use
+
 	nonoise = ""
 	if not VERBOSE:
 		nonoise = "  >/dev/null 2>&1"
