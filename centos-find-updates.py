@@ -391,9 +391,9 @@ def constructArgParser():
 	parser.add_argument("-u", action="store_true", dest="uponly", default=False,
 					  help="List higher-releasenumbers only") 
 	args = parser.parse_args()
-	return
+	return args
 
 if __name__ == "__main__":
-	constructArgParser()
+	
 
-	main(args)
+	main(constructArgParser())
