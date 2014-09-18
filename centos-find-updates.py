@@ -257,8 +257,6 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 	# this function "merges" xml and rpm object-lists.
 	# compare both lists. If any object 'equals' the other, it could be an update.
 	# compare subversions to filter 'upgrades' only.
-	#
-	# O(n*m) solution ahead. Think about sorted-lists or a proper search for speed-up.
 	
 	# Dictionary to avoid double entries in the final list
 	validupdates = {} 
@@ -268,9 +266,26 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 	updatesseemlower = 0	#verbose
 	for XML_LIST in XML_LIST_LIST:
 		for update in XML_LIST:
-			if validupdates.has_key(update.name):#Skip evrything if this key allready exists
+			if validupdates.has_key(update.name):#Skip everything if this key allready exists
 				continue
 			for existing_rpm in RPM_LIST:
+				# Some spaghetti ahead, but solving it causes some boolean
+				# mind-acrobatic or more coffe than i have available atm.
+				# 
+				# A table of what it does.
+				# |	ex = existing	|
+				# |	upd = update	|
+				# 
+				# Bigger Major
+				#	ex 		->	 skip
+				#	upd 	->	 goto bottom
+				# Only equal Majors left.
+				#
+				# Bigger Minor
+				#	ex 		->	skip
+				#	== 		->	 skip
+				#
+				# If it wasnt skipped - it's an upgrade
 				if update.equals(existing_rpm):
 					updatesfound += 1
 					sign = "+"
@@ -292,7 +307,7 @@ def merge(XML_LIST_LIST, RPM_LIST, VERBOSE = False,UPONLY = False):
 							continue
 					elif ((not version_a_is_bigger(existing_rpm.subversion,update.subversion ))\
 					  and( not version_a_is_bigger(update.subversion,existing_rpm.subversion))):
-						#Equals - none is biger, even in subversion
+						#Equals - none is bigger, even in subversion
 						updatesseemlower += 1
 						sign = "-"
 						if UPONLY:
