@@ -53,7 +53,7 @@ class rpmObject:
 		# name, versio and arch need to fit. subversion(release) doesnt need to. 
 		
 		if (self.name == foreign.name and
-			self.version == foreign.version and
+			#self.version == foreign.version and  # commenting this allows major-updates to happen.
 				((self.arch == foreign.arch)or(foreign.arch=="noarch")) ):
 					return True
 		return False
