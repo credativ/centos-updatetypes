@@ -411,7 +411,7 @@ def constructArgParser():
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
 					  help="Show extra messages")
 	parser.add_argument("-V", action="store_true", dest="veryverbose", default=False,
-					  help="Show extra messages and ncurses-like that break piping.")
+					  help="Show extra messages and ncurses-like menues that break direct piping.")
 	parser.add_argument("-u", action="store_false", dest="uponly", default=True,
 					  help="Show downgrades") 
 	parser.add_argument("-a", action="store_true", dest="All", default=False,
