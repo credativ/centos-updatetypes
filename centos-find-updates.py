@@ -241,7 +241,6 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 						 for package in update.find("pkglist").find("collection"):
 							 if package.tag == "package":
 								#here could be a cutter, but epel-files dont require cutting.
-								print package.attrib["name"]
 								a =  rpmObject(	package.attrib["name"],
 												package.attrib["version"],
 												package.attrib["release"],
