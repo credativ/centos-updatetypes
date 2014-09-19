@@ -430,10 +430,10 @@ def constructArgParser():
 	parser.add_argument("-x", "--xml", dest="xmlfiles",nargs='+',required = True,
 					  help="Path to XML-Updatelistfile or a repositorys HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
 	parser.add_argument("-b", "--bugs",
-					  action="store_false", dest="bugs", default=True,
+					  action="store_true", dest="bugs", default=False,
 					  help="Ignore bugsfixes")
 	parser.add_argument("-s", "--security",
-					  action="store_false", dest="security", default=True,
+					  action="store_true", dest="security", default=False,
 					  help="Ignore securityupdates")
 	parser.add_argument("-a", action="store_true", dest="All", default=False,
 					  help="Consider all upgrades regardless of type") 
