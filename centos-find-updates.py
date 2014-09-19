@@ -101,7 +101,6 @@ def getAttribORDefault(List, Key, Default="Unknown"):
 	# this function will return the value of the key OR a default value
 	if List.has_key(Key):
 		return List[Key]
-	print "!!!!"
 	return Default
 	
 def version_a_is_bigger(first, second):
