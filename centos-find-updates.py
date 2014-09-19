@@ -101,6 +101,7 @@ def getAttribORDefault(List, Key, Default="Unknown"):
 	# this function will return the value of the key OR a default value
 	if List.has_key(Key):
 		return List[Key]
+	print "!!!!"
 	return Default
 	
 def version_a_is_bigger(first, second):
@@ -241,11 +242,12 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 						 for package in update.find("pkglist").find("collection"):
 							 if package.tag == "package":
 								#here could be a cutter, but epel-files dont require cutting.
+								print package.attrib["name"]
 								a =  rpmObject(	package.attrib["name"],
 												package.attrib["version"],
 												package.attrib["release"],
 												package.attrib["arch"],
-												getAttribORDefault(package.attrib, "type"),
+												getAttribORDefault(update.attrib, "type"),
 												identifier)
 								XML_LIST.append(a)
 								
