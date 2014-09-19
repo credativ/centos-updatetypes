@@ -45,7 +45,7 @@ class rpmObject:
 
 	def show(self):
 		# print this object to stdout
-		print "[",self.orig,"]",self.name,"in version", self.version, self.subversion, "on arch",self.arch
+		print "[",self.orig,"] as", self.typ,"-",self.name,"in version", self.version, self.subversion, "on arch",self.arch
 
 	def equals(self, foreign):
 		# 'equals' compares the major components and tests for compability
@@ -430,19 +430,19 @@ def constructArgParser():
 	parser.add_argument("-x", "--xml", dest="xmlfiles",nargs='+',required = True,
 					  help="Path to XML-Updatelistfile or a repositorys HTTP-URL.\nXML-Files are obtained from sites like cefs.steve-meier.de. \nURL-Example http://your.domain.here/centos/6/updates/x86_64/ ")
 	parser.add_argument("-b", "--bugs",
-					  action="store_true", dest="bugs", default=False,
-					  help="List bugfixes aswell")
+					  action="store_false", dest="bugs", default=True,
+					  help="Ignore bugsfixes")
 	parser.add_argument("-s", "--security",
 					  action="store_false", dest="security", default=True,
 					  help="Ignore securityupdates")
+	parser.add_argument("-a", action="store_true", dest="All", default=False,
+					  help="Consider all upgrades regardless of type") 
 	parser.add_argument("-v", action="store_true", dest="verbose", default=False,
 					  help="Show extra messages")
 	parser.add_argument("-V", action="store_true", dest="veryverbose", default=False,
 					  help="Show extra messages and ncurses-like menues that break direct piping.")
 	parser.add_argument("-u", action="store_false", dest="uponly", default=True,
 					  help="Show downgrades") 
-	parser.add_argument("-a", action="store_true", dest="All", default=False,
-					  help="Print all upgrades regardless of type.") 
 	args = parser.parse_args()
 	return args
 
