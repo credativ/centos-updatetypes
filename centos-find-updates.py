@@ -95,8 +95,13 @@ def default_cutter(line, typ, arch=None, rpmending = True):
 
 def epel_cutter(line, typ, arch=None):
 	pass #see epel-parsetree tl;dr; epel-xml's dont require cutting as the xml is well made.
-	
-#def majorversion_a_is_bigger(first, second):
+
+def getAttribORDefault(List, Key, Default="Unknown"):
+	# As some xml's lack certain attributes
+	# this function will return the value of the key OR a default value
+	if List.has_key(Key):
+		return List[Key]
+	return Default
 	
 def version_a_is_bigger(first, second):
 	# Compare the version(release)
@@ -150,7 +155,7 @@ def version_a_is_bigger(first, second):
 				return False
 	# If everything fails, we cant say the version is bigger.
 	return False
-				
+
 def buildrpmlist(rpm, VERBOSE = False):
 	# Fetch all RPM's from inputfile.
 	# Open file and line-by-line cut the strings to objects.
@@ -217,7 +222,7 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 						 or((modules.attrib["type"].find("Security")!=-1 ) and (SECURITY) ) ):
 						for packages in modules:
 							if (packages.tag == "packages"):
-								val = default_cutter(packages.text, modules.attrib["type"])
+								val = default_cutter(packages.text, getAttribORDefault(modules.attrib,"type" ) )
 								if val:
 									XML_LIST.append(val)
 								else:
@@ -236,7 +241,12 @@ def buildlist(xml, RPM_LIST, VERBOSE = False, BUGS = False, SECURITY = True, ide
 						 for package in update.find("pkglist").find("collection"):
 							 if package.tag == "package":
 								#here could be a cutter, but epel-files dont require cutting.
-								a =  rpmObject(package.attrib["name"], package.attrib["version"],package.attrib["release"],package.attrib["arch"],update.attrib["type"], identifier)
+								a =  rpmObject(	package.attrib["name"],
+												package.attrib["version"],
+												package.attrib["release"],
+												package.attrib["arch"],
+												getAttribORDefault(package.attrib, "type"),
+												identifier)
 								XML_LIST.append(a)
 								
 		else:
@@ -338,7 +348,8 @@ def pullFromWeb(url, VERBOSE=False , VERYVERBOSE = False ):
 	# (checksums are added infront of the filename by default, so we need to seek the
 	#  update.xml's >real< name witin repomd.xml prior to loading it.
 	# pull this file and return it's location for further use
-
+	if VERBOSE:
+		print "---- Starting download from %s"%url
 	nonoise = ""
 	if not VERYVERBOSE:
 		nonoise = "  >/dev/null 2>&1"
@@ -346,7 +357,7 @@ def pullFromWeb(url, VERBOSE=False , VERYVERBOSE = False ):
 	target =  "%s/repodata/repomd.xml"%(url)
 	dropoff = "updateinfo.xml"
 	if os.system( "%s %s -O %s %s"%(pullmechanism, target, dropoff, nonoise) )!= 0:
-		raise Exception("Error using wget. Destionation %s"%(target) )
+		raise Exception("Error using wget on repomd-file")
 	updatefile = ""
 	
 	rootname = ""
@@ -373,7 +384,7 @@ def pullFromWeb(url, VERBOSE=False , VERYVERBOSE = False ):
 	# Lets pull it
 	dropoff = "%s%s"%(filetofind , ".xml.gz")
 	if os.system( "%s %s -O %s %s"%(pullmechanism, updatefile, dropoff, nonoise ) )!= 0:
-		raise Exception("Error using wget. Destionation %s"%(updatefile))
+		raise Exception("Error using wget on updatefile" )
 	
 	# Remove compression and return location.
 	
